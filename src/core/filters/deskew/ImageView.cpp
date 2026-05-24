@@ -100,8 +100,7 @@ void ImageView::onPaint(QPainter& painter, const InteractionState& interaction) 
   painter.setWorldMatrixEnabled(false);
   painter.setRenderHints(QPainter::Antialiasing, false);
 
-  const double w = maxViewportRect().width();
-  const double h = maxViewportRect().height();
+  const QRectF contentArea(getContentAreaRect());
   const QPointF center(getImageRotationOrigin());
 
   // Draw the semi-transparent grid.
@@ -110,17 +109,17 @@ void ImageView::onPaint(QPainter& painter, const InteractionState& interaction) 
   pen.setWidth(1);
   painter.setPen(pen);
   QVector<QLineF> lines;
-  for (double y = center.y(); (y -= m_cellSize) > 0.0;) {
-    lines.push_back(QLineF(0.5, y, w - 0.5, y));
+  for (double y = center.y(); (y -= m_cellSize) > contentArea.top();) {
+    lines.push_back(QLineF(contentArea.left() + 0.5, y, contentArea.right() - 0.5, y));
   }
-  for (double y = center.y(); (y += m_cellSize) < h;) {
-    lines.push_back(QLineF(0.5, y, w - 0.5, y));
+  for (double y = center.y(); (y += m_cellSize) < contentArea.bottom();) {
+    lines.push_back(QLineF(contentArea.left() + 0.5, y, contentArea.right() - 0.5, y));
   }
-  for (double x = center.x(); (x -= m_cellSize) > 0.0;) {
-    lines.push_back(QLineF(x, 0.5, x, h - 0.5));
+  for (double x = center.x(); (x -= m_cellSize) > contentArea.left();) {
+    lines.push_back(QLineF(x, contentArea.top() + 0.5, x, contentArea.bottom() - 0.5));
   }
-  for (double x = center.x(); (x += m_cellSize) < w;) {
-    lines.push_back(QLineF(x, 0.5, x, h - 0.5));
+  for (double x = center.x(); (x += m_cellSize) < contentArea.right();) {
+    lines.push_back(QLineF(x, contentArea.top() + 0.5, x, contentArea.bottom() - 0.5));
   }
   painter.drawLines(lines);
 
@@ -128,8 +127,8 @@ void ImageView::onPaint(QPainter& painter, const InteractionState& interaction) 
   pen.setColor(QColor(0, 0, 0xd1));
   painter.setPen(pen);
   painter.setBrush(Qt::NoBrush);
-  painter.drawLine(QPointF(0.5, center.y()), QPointF(w - 0.5, center.y()));
-  painter.drawLine(QPointF(center.x(), 0.5), QPointF(center.x(), h - 0.5));
+  painter.drawLine(QPointF(contentArea.left() + 0.5, center.y()), QPointF(contentArea.right() - 0.5, center.y()));
+  painter.drawLine(QPointF(center.x(), contentArea.top() + 0.5), QPointF(center.x(), contentArea.bottom() - 0.5));
   // Draw the rotation arcs.
   // Those will look like this (  )
   const QRectF arcSquare(getRotationArcSquare());
@@ -247,27 +246,39 @@ void ImageView::dragFinished() {
 }
 
 /**
- * Get the point at the center of the widget, in widget coordinates.
- * The point may be adjusted to to ensure it's at the center of a pixel.
+ * Get the point at the center of the widget content area, in widget coordinates.
  */
 QPointF ImageView::getImageRotationOrigin() const {
-  const QRectF viewportRect(maxViewportRect());
-  return QPointF(std::floor(0.5 * viewportRect.width()) + 0.5, std::floor(0.5 * viewportRect.height()) + 0.5);
+  const QRectF contentArea(getContentAreaRect());
+  return QPointF(std::floor(0.5 * contentArea.width()) + 0.5 + contentArea.x(),
+                 std::floor(0.5 * contentArea.height()) + 0.5 + contentArea.y());
+}
+
+QRectF ImageView::getContentAreaRect() const {
+  const double hMargin
+      = 0.5 * m_handlePixmap.width()
+        + (verticalScrollBar()->isVisible()
+               ? verticalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, verticalScrollBar())
+               : 0.0);
+  const double vMargin
+      = 0.5 * m_handlePixmap.height()
+        + (horizontalScrollBar()->isVisible()
+               ? horizontalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, horizontalScrollBar())
+               : 0.0);
+
+  QRectF content(maxViewportRect());
+  content.adjust(hMargin, vMargin, -hMargin, -vMargin);
+  if (content.isEmpty()) {
+    return maxViewportRect();
+  }
+  return content;
 }
 
 /**
  * Get the square in widget coordinates where two rotation arcs will be drawn.
  */
 QRectF ImageView::getRotationArcSquare() const {
-  const double hMargin
-      = 0.5 * m_handlePixmap.width()
-        + verticalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, verticalScrollBar());
-  const double vMargin
-      = 0.5 * m_handlePixmap.height()
-        + horizontalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, horizontalScrollBar());
-
-  QRectF reducedScreenRect(maxViewportRect());
-  reducedScreenRect.adjust(hMargin, vMargin, -hMargin, -vMargin);
+  const QRectF reducedScreenRect(getContentAreaRect());
 
   QSizeF arcSize(1.0, m_maxRotationSin);
   arcSize.scale(reducedScreenRect.size(), Qt::KeepAspectRatio);
@@ -291,15 +302,7 @@ std::pair<QPointF, QPointF> ImageView::getRotationHandles(const QRectF& arcSquar
 }
 
 QRectF ImageView::getObliqueArcSquare() const {
-  const double hMargin
-      = 0.5 * m_handlePixmap.width()
-        + verticalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, verticalScrollBar());
-  const double vMargin
-      = 0.5 * m_handlePixmap.height()
-        + horizontalScrollBar()->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, horizontalScrollBar());
-
-  QRectF reducedScreenRect(maxViewportRect());
-  reducedScreenRect.adjust(hMargin, vMargin, -hMargin, -vMargin);
+  const QRectF reducedScreenRect(getContentAreaRect());
 
   const double obliqueSin = std::sin(m_maxObliqueDeg * constants::DEG2RAD);
   QSizeF arcSize(obliqueSin, 1.0);

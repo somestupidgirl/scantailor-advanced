@@ -1,6 +1,7 @@
 // Copyright (C) 2019  Joseph Artsimovich <joseph.artsimovich@gmail.com>, 4lex4 <4lex49@zoho.com>
 // Use of this source code is governed by the GNU GPLv3 license that can be found in the LICENSE file.
 
+#include <DefaultParams.h>
 #include <Dpi.h>
 #include <ImageTransformation.h>
 #include <filters/deskew/Dependencies.h>
@@ -139,6 +140,11 @@ BOOST_AUTO_TEST_CASE(params_missing_autoOblique_attribute_defaults_true) {
 
   const Params restored(doc.documentElement());
   BOOST_CHECK(restored.autoOblique());
+}
+
+BOOST_AUTO_TEST_CASE(default_params_deskew_auto_oblique_off_by_default) {
+  const DefaultParams::DeskewParams deskew;
+  BOOST_CHECK(!deskew.isAutoOblique());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -120,7 +120,7 @@ FilterResultPtr Task::process(const TaskStatus& status, FilterData data) {
 
     status.throwIfCancelled();
 
-    bool autoObliqueEnabled = true;
+    bool autoObliqueEnabled = false;
     if (priorParamsBeforeRecompute) {
       autoObliqueEnabled = priorParamsBeforeRecompute->autoOblique();
     } else if (const auto pending = m_settings->takePendingAutoOblique(m_pageId)) {

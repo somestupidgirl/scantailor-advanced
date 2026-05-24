@@ -61,6 +61,9 @@ class ImageView : public ImageViewBase, private InteractionHandler {
 
   QPointF getImageRotationOrigin() const;
 
+  /** Viewport area inset for scroll bars and handle pixmap margins. */
+  QRectF getContentAreaRect() const;
+
   QRectF getRotationArcSquare() const;
 
   std::pair<QPointF, QPointF> getRotationHandles(const QRectF& arcSquare) const;
