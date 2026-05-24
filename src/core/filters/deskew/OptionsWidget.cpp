@@ -54,8 +54,7 @@ OptionsWidget::OptionsWidget(std::shared_ptr<Settings> settings, const PageSelec
   angleSpinBox->adjustSize();
   setSpinBoxUnknownState();
   topEdgeCheckBox->setChecked(!m_settings->algoContentBased());
-  autoObliqueCheckBox->setChecked(
-      DefaultParamsProvider::getInstance().getParams().getDeskewParams().isAutoOblique());
+  autoObliqueCheckBox->setChecked(DefaultParamsProvider::getInstance().getParams().getDeskewParams().isAutoOblique());
   obliqueManualBtn->setChecked(true);
   obliqueAutoBtn->setChecked(false);
 
@@ -152,8 +151,7 @@ void OptionsWidget::postUpdateUI(const UiData& uiData) {
   updateObliqueModeIndication(uiData.obliqueMode());
   setSpinBoxKnownState(degreesToSpinBox(uiData.effectiveDeskewAngle()));
   obliqueSpinBox->setValue(m_uiData.effectiveObliqueAngle());
-  autoObliqueCheckBox->setChecked(
-      DefaultParamsProvider::getInstance().getParams().getDeskewParams().isAutoOblique());
+  autoObliqueCheckBox->setChecked(DefaultParamsProvider::getInstance().getParams().getDeskewParams().isAutoOblique());
 }
 
 void OptionsWidget::spinBoxValueChanged(const double value) {
