@@ -92,6 +92,8 @@ class OptionsWidget : public FilterOptionsWidget, private Ui::OptionsWidget {
 
   void topEdgeToggled(bool checked);
 
+  void autoObliqueCheckBoxToggled(bool checked);
+
   void showDeskewDialog();
 
   void appliedTo(const std::set<PageId>& pages, bool applyDeskew, bool applyOblique);

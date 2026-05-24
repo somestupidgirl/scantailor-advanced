@@ -71,7 +71,7 @@ DefaultParams::DeskewParams::DeskewParams() : m_deskewAngleDeg(0.0), m_mode(MODE
 DefaultParams::DeskewParams::DeskewParams(const QDomElement& el)
     : m_deskewAngleDeg(el.attribute("deskewAngleDeg").toDouble()),
       m_mode((el.attribute("mode") == "manual") ? MODE_MANUAL : MODE_AUTO),
-      m_autoOblique(el.attribute("autoOblique", "1") != "0") {}
+      m_autoOblique(el.attribute("autoOblique", "0") != "0") {}
 
 QDomElement DefaultParams::DeskewParams::toXml(QDomDocument& doc, const QString& name) const {
   QDomElement el(doc.createElement(name));
