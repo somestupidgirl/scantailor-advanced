@@ -1334,7 +1334,9 @@ void MainWindow::filterResult(const BackgroundTaskPtr& task, const FilterResultP
         if (cmd.isEmpty()) {
           QApplication::beep();
         } else {
+          #if !defined(Q_OS_IOS)
           Q_UNUSED(std::system(cmd.toStdString().c_str()));
+#endif
         }
       }
 

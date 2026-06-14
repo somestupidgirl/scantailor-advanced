@@ -1,5 +1,4 @@
 set(CMAKE_AUTOUIC ON)
-
 set(ui_files
     ApplyColorsDialog.ui
     ChangeDewarpingDialog.ui
@@ -9,7 +8,6 @@ set(ui_files
     OptionsWidgetBinarizationSauvola.ui
     OptionsWidgetBinarizationWolf.ui
     PictureZonePropDialog.ui)
-
 set(sources
     ApplyColorsDialog.cpp ApplyColorsDialog.h
     ChangeDpiDialog.cpp ChangeDpiDialog.h
@@ -54,10 +52,10 @@ set(sources
     DepthPerception.cpp DepthPerception.h
     SplittingOptions.cpp SplittingOptions.h
     OptionsWidgetBinarizationOtsu.cpp OptionsWidgetBinarizationOtsu.h
-    OptionsWidgetBinarizationSauvola.cpp OptionsWidgetBinarizationSauvola.h 
-    OptionsWidgetBinarizationWolf.cpp OptionsWidgetBinarizationWolf.h 
-    OptionsWidgetBinarization.h 
-    PictureShapeOptions.cpp PictureShapeOptions.h 
+    OptionsWidgetBinarizationSauvola.cpp OptionsWidgetBinarizationSauvola.h
+    OptionsWidgetBinarizationWolf.cpp OptionsWidgetBinarizationWolf.h
+    OptionsWidgetBinarization.h
+    PictureShapeOptions.cpp PictureShapeOptions.h
     OutputProcessingParams.cpp OutputProcessingParams.h
     OutputImage.h
     OutputImageWithForeground.h
@@ -69,6 +67,10 @@ set(sources
 
 add_library(output STATIC ${sources} ${ui_files})
 target_link_libraries(output PUBLIC core PRIVATE dewarping)
-target_include_directories(output PRIVATE "$<TARGET_PROPERTY:TIFF::TIFF,INTERFACE_INCLUDE_DIRECTORIES>")
+
+if(NOT IOS)
+  target_include_directories(output
+      PRIVATE "$<TARGET_PROPERTY:TIFF::TIFF,INTERFACE_INCLUDE_DIRECTORIES>")
+endif()
 
 translation_sources(scantailor ${sources} ${ui_files})
