@@ -241,7 +241,13 @@ void ProjectFilesDialog::inpDirBrowse() {
     initialDir = QDir(initialDir).absolutePath();
   }
 
-  const QString dir(QFileDialog::getExistingDirectory(this, tr("Input Directory"), initialDir));
+  const QString dir(QFileDialog::getExistingDirectory(this, tr("Input Directory"), initialDir,
+#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
+      QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
+#else
+      QFileDialog::ShowDirsOnly
+#endif
+  ));
 
   if (!dir.isEmpty()) {
     setInputDir(dir);
@@ -255,7 +261,13 @@ void ProjectFilesDialog::outDirBrowse() {
     initialDir = QDir::home().absolutePath();
   }
 
-  const QString dir(QFileDialog::getExistingDirectory(this, tr("Output Directory"), initialDir));
+  const QString dir(QFileDialog::getExistingDirectory(this, tr("Output Directory"), initialDir,
+#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
+      QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
+#else
+      QFileDialog::ShowDirsOnly
+#endif
+  ));
 
   if (!dir.isEmpty()) {
     setOutputDir(dir);
