@@ -67,6 +67,9 @@ if (WIN32)
 endif()
 
 if(IOS)
+  list(APPEND gui_only_sources ios/IosDirectoryPicker.mm ios/IosDirectoryPicker.h)
+  set_source_files_properties(ios/IosDirectoryPicker.mm
+    PROPERTIES COMPILE_FLAGS "-x objective-c++")
   # iOS: MACOSX_BUNDLE required; use all sources (UI will be stubbed later)
   # Resource files excluded — .qrc with desktop assets won't compile for iOS
   add_executable(

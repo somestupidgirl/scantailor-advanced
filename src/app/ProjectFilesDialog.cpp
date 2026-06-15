@@ -6,6 +6,10 @@
 #include <core/IconProvider.h>
 
 #include <QFileDialog>
+#ifdef Q_OS_IOS
+#include "ios/IosDirectoryPicker.h"
+#endif
+#include <QStandardPaths>
 #include <QMessageBox>
 #include <QSettings>
 #include <QSortFilterProxyModel>
@@ -230,7 +234,6 @@ QString ProjectFilesDialog::sanitizePath(const QString& path) {
 
 void ProjectFilesDialog::inpDirBrowse() {
   QSettings settings;
-
   QString initialDir(inpDirLine->text());
   if (initialDir.isEmpty() || !QDir(initialDir).exists()) {
     initialDir = settings.value("lastInputDir").toString();
@@ -240,38 +243,64 @@ void ProjectFilesDialog::inpDirBrowse() {
   } else {
     initialDir = QDir(initialDir).absolutePath();
   }
-
-  const QString dir(QFileDialog::getExistingDirectory(this, tr("Input Directory"), initialDir,
-#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
-      QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
-#else
-      QFileDialog::ShowDirsOnly
-#endif
-  ));
-
-  if (!dir.isEmpty()) {
-    setInputDir(dir);
-    settings.setValue("lastInputDir", dir);
+#if defined(Q_OS_IOS)
+  {
+    const QString startDir = QStandardPaths::writableLocation(
+        QStandardPaths::DocumentsLocation);
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, tr("Input Directory"), startDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
+    if (!dir.isEmpty()) {
+      setInputDir(dir);
+      settings.setValue("lastInputDir", dir);
+    }
   }
+#else
+  {
+    const QString dir(QFileDialog::getExistingDirectory(this, tr("Input Directory"), initialDir,
+#  if defined(Q_OS_MACOS)
+        QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
+#  else
+        QFileDialog::ShowDirsOnly
+#  endif
+    ));
+    if (!dir.isEmpty()) {
+      setInputDir(dir);
+      settings.setValue("lastInputDir", dir);
+    }
+  }
+#endif
 }
-
 void ProjectFilesDialog::outDirBrowse() {
   QString initialDir(outDirLine->text());
   if (initialDir.isEmpty() || !QDir(initialDir).exists()) {
     initialDir = QDir::home().absolutePath();
   }
-
-  const QString dir(QFileDialog::getExistingDirectory(this, tr("Output Directory"), initialDir,
-#if defined(Q_OS_MACOS) || defined(Q_OS_IOS)
-      QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
-#else
-      QFileDialog::ShowDirsOnly
-#endif
-  ));
-
-  if (!dir.isEmpty()) {
-    setOutputDir(dir);
+#if defined(Q_OS_IOS)
+  {
+    const QString startDir = QStandardPaths::writableLocation(
+        QStandardPaths::DocumentsLocation);
+    const QString dir = QFileDialog::getExistingDirectory(
+        this, tr("Output Directory"), startDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
+    if (!dir.isEmpty()) {
+      setOutputDir(dir);
+    }
   }
+#else
+  {
+    const QString dir(QFileDialog::getExistingDirectory(this, tr("Output Directory"), initialDir,
+#  if defined(Q_OS_MACOS)
+        QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog
+#  else
+        QFileDialog::ShowDirsOnly
+#  endif
+    ));
+    if (!dir.isEmpty()) {
+      setOutputDir(dir);
+    }
+  }
+#endif
 }
 
 void ProjectFilesDialog::inpDirEdited(const QString& text) {
