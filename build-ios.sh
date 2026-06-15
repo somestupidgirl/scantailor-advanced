@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Build ScanTailor Advanced and create a signed .ipa for iOS.
+# Build ScanTailor Advanced and create a fakesigned .ipa for iOS.
 # Usage: ./build-ios.sh [build_dir]
-# Requires: Qt 6.x with iOS target, Xcode, aqtinstall or Qt Installer
+# Requires: Qt 6.x with iOS target, Xcode, ldid (brew install ldid)
+#
+# The resulting .ipa is fakesigned and can be installed via:
+#   - Sideloadly (sideloadly.io)
+#   - AltStore    (altstore.io)
+#   - TrollStore  (if device is supported)
+#   - ideviceinstaller after re-signing with a real cert
 #
 # Environment variables (override defaults):
 #   QT_IOS_DIR     Path to Qt iOS installation  (e.g. ~/Qt/6.12.0/ios)
 #   QT_MACOS_DIR   Path to Qt macOS installation (e.g. ~/Qt/6.12.0/macos)
-#   TEAM_ID        Apple Developer Team ID        (e.g. QRT57HMJMV)
 #   BUNDLE_ID      App bundle identifier          (e.g. com.yourname.scantailor)
-#   DEVICE_ID      Target device UDID for install (optional)
+#   DEVICE_ID      Target device UDID for install (optional, requires real cert)
 
 set -e
 
@@ -19,9 +24,24 @@ BUILD_DIR="${1:-build-ios}"
 mkdir -p "$BUILD_DIR"
 BUILD_DIR="$(cd "$BUILD_DIR" && pwd)"
 
+# ── Check for ldid ─────────────────────────────────────────────────────────────
+
+if ! command -v ldid >/dev/null 2>&1; then
+  echo "Error: ldid not found. Install with: brew install ldid" >&2
+  exit 1
+fi
+
+# ── Generate icons ─────────────────────────────────────────────────────────────
+
+if [[ -f "${SCRIPT_DIR}/generate-icons.sh" ]]; then
+  echo "Generating icons..."
+  bash "${SCRIPT_DIR}/generate-icons.sh"
+else
+  echo "Warning: generate-icons.sh not found, skipping icon generation." >&2
+fi
+
 # ── Locate Qt ──────────────────────────────────────────────────────────────────
 
-# Auto-detect Qt if not set via environment
 if [[ -z "$QT_IOS_DIR" ]]; then
   QT_IOS_DIR=$(find ~/Qt -name "Qt6Config.cmake" 2>/dev/null \
     | grep "/ios/" | head -1 | sed 's|/lib/cmake/Qt6/Qt6Config.cmake||')
@@ -44,26 +64,8 @@ if [[ -z "$QT_MACOS_DIR" || ! -d "$QT_MACOS_DIR" ]]; then
   exit 1
 fi
 
-echo "Qt iOS:  $QT_IOS_DIR"
+echo "Qt iOS:   $QT_IOS_DIR"
 echo "Qt macOS: $QT_MACOS_DIR"
-
-# ── Signing identity ───────────────────────────────────────────────────────────
-
-if [[ -z "$TEAM_ID" ]]; then
-  # Try to extract from keychain
-  TEAM_ID=$(security find-identity -v -p codesigning 2>/dev/null \
-    | grep "Apple Development" | head -1 \
-    | sed -n 's/.*(\([A-Z0-9]*\)).*/\1/p')
-fi
-if [[ -z "$TEAM_ID" ]]; then
-  echo "Error: Could not determine Team ID." >&2
-  echo "Set TEAM_ID=XXXXXXXXXX (10-char code from Apple Developer account)." >&2
-  exit 1
-fi
-
-BUNDLE_ID="${BUNDLE_ID:-com.yourname.scantailor}"
-echo "Team ID:   $TEAM_ID"
-echo "Bundle ID: $BUNDLE_ID"
 
 # ── Extract version ────────────────────────────────────────────────────────────
 
@@ -72,16 +74,10 @@ if [[ -z "$VERSION" ]]; then
   echo "Error: could not read VERSION from version.h.in" >&2
   exit 1
 fi
-echo "Building ScanTailor Advanced ${VERSION} for iOS"
 
-# ── Generate icons ─────────────────────────────────────────────────────────────
-
-if [[ -f "${SCRIPT_DIR}/generate-icons.sh" ]]; then
-  echo "Generating icons..."
-  bash "${SCRIPT_DIR}/generate-icons.sh"
-else
-  echo "Warning: generate-icons.sh not found, skipping icon generation." >&2
-fi
+BUNDLE_ID="${BUNDLE_ID:-com.$(id -un).scantailor}"
+echo "Bundle ID: $BUNDLE_ID"
+echo "Building ScanTailor Advanced ${VERSION} for iOS (fakesigned)"
 
 # ── Configure ─────────────────────────────────────────────────────────────────
 
@@ -92,21 +88,22 @@ cmake -G Xcode \
   -DCMAKE_PREFIX_PATH="${QT_IOS_DIR};${QT_MACOS_DIR}" \
   -DCMAKE_TOOLCHAIN_FILE="${QT_IOS_DIR}/lib/cmake/Qt6/qt.toolchain.cmake" \
   -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
-  -DMACOSX_BUNDLE_GUI_IDENTIFIER="${BUNDLE_ID}" \
-  -DXCODE_ATTRIBUTE_DEVELOPMENT_TEAM="${TEAM_ID}" \
+  -DBUNDLE_ID="${BUNDLE_ID}" \
   "$SCRIPT_DIR"
 
-# ── Build ──────────────────────────────────────────────────────────────────────
+# ── Build (no real signing) ────────────────────────────────────────────────────
 
 xcodebuild \
   -project "ScanTailor Advanced.xcodeproj" \
   -scheme "scantailor-advanced" \
   -destination "generic/platform=iOS" \
   -configuration Release \
-  -allowProvisioningUpdates \
+  CODE_SIGNING_ALLOWED=NO \
+  CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" \
   build
 
-# ── Package as IPA ────────────────────────────────────────────────────────────
+# ── Find built .app ────────────────────────────────────────────────────────────
 
 APP=$(find "$BUILD_DIR" -name "scantailor-advanced.app" \
   -not -path "*/simulator/*" | head -1)
@@ -115,6 +112,22 @@ if [[ -z "$APP" ]]; then
   echo "Error: could not find built .app" >&2
   exit 1
 fi
+
+# ── Fakesign with ldid ─────────────────────────────────────────────────────────
+
+echo "Fakesigning with ldid..."
+ENTITLEMENTS="${SCRIPT_DIR}/ios/scantailor.entitlements"
+if [[ -f "$ENTITLEMENTS" ]]; then
+  ldid -S"$ENTITLEMENTS" "$APP/scantailor-advanced"
+else
+  ldid -S "$APP/scantailor-advanced"
+fi
+# Sign any embedded frameworks/dylibs too
+find "$APP" -name "*.dylib" -o -name "*.framework" | while read -r lib; do
+  ldid -S "$lib" 2>/dev/null || true
+done
+
+# ── Package as IPA ────────────────────────────────────────────────────────────
 
 IPA_DIR="/tmp/scantailor-ipa-$$"
 mkdir -p "${IPA_DIR}/Payload"
@@ -125,13 +138,10 @@ cd "$IPA_DIR"
 zip -r "$IPA_PATH" Payload/
 rm -rf "$IPA_DIR"
 
+echo ""
 echo "Done: $IPA_PATH"
-
-# ── Optional device install ───────────────────────────────────────────────────
-
-if [[ -n "$DEVICE_ID" ]]; then
-  echo "Installing on device $DEVICE_ID ..."
-  xcrun devicectl device install app \
-    --device "$DEVICE_ID" "$APP"
-  echo "Installed."
-fi
+echo ""
+echo "Install options:"
+echo "  Sideloadly:      drag the .ipa onto sideloadly.io app"
+echo "  AltStore:        use AltServer to sideload"
+echo "  TrollStore:      if your device is supported"

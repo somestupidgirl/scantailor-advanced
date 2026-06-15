@@ -414,8 +414,13 @@ if(IOS)
     XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY        "1,2"
     XCODE_ATTRIBUTE_ENABLE_BITCODE                "NO"
     XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
-    RESOURCE "${CMAKE_SOURCE_DIR}/ios/AppIcon.appiconset"
   )
+
+  # Asset catalog must be added as a source so Xcode's actool compiles the icons.
+  set(APPICONSET "${CMAKE_SOURCE_DIR}/ios/AppIcon.appiconset")
+  target_sources(${target_name} PRIVATE "${APPICONSET}")
+  set_source_files_properties("${APPICONSET}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
   # Qt's bundled JPEG/PNG/ZLIB/Freetype are compiled into Qt6::Gui and Qt6::Core
   # on iOS — link the Qt modules directly, no separate bundled targets needed.
