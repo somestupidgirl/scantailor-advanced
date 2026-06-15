@@ -84,7 +84,7 @@ make -j"$(sysctl -n hw.logicalcpu)"
 
 # ── Bundle Qt frameworks ───────────────────────────────────────────────────────
 
-APP_PATH="${BUILD_DIR}/scantailor-advanced.app"
+APP_PATH="${BUILD_DIR}/ScanTailor Advanced.app"
 
 MACDEPLOYQT="${QT_MACOS_DIR}/bin/macdeployqt"
 if [[ ! -x "$MACDEPLOYQT" ]]; then

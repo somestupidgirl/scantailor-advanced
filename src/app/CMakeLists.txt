@@ -70,6 +70,11 @@ if(IOS)
   list(APPEND gui_only_sources ios/IosDirectoryPicker.mm ios/IosDirectoryPicker.h)
   set_source_files_properties(ios/IosDirectoryPicker.mm
     PROPERTIES COMPILE_FLAGS "-x objective-c++")
+  # iOS app icon via asset catalog
+  set(IOS_ICON_CATALOG "${CMAKE_SOURCE_DIR}/ios/Assets.xcassets")
+  list(APPEND gui_only_sources "${IOS_ICON_CATALOG}")
+  set_source_files_properties("${IOS_ICON_CATALOG}"
+    PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
   # iOS: MACOSX_BUNDLE required; use all sources (UI will be stubbed later)
   # Resource files excluded — .qrc with desktop assets won't compile for iOS
   add_executable(
@@ -117,8 +122,9 @@ endif()
 
 translation_sources(${target_name} ${gui_only_sources} ${gui_only_ui_files})
 
-# macOS: set app icon
+# macOS: set app icon and bundle name
 if(APPLE AND NOT IOS)
+  set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "ScanTailor Advanced")
   set(MACOS_ICON "${CMAKE_SOURCE_DIR}/src/resources/appicon.icns")
   if(EXISTS "${MACOS_ICON}")
     target_sources(${target_name} PRIVATE "${MACOS_ICON}")
