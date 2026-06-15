@@ -9,6 +9,7 @@
 #include <QActionGroup>
 #include <QDir>
 #include <QFileDialog>
+#include <QStandardPaths>
 #include <QFileSystemModel>
 #include <QMenu>
 #include <QMessageBox>
@@ -1427,7 +1428,13 @@ void MainWindow::saveProjectAsTriggered() {
   }
 
   QString projectFile(
-      QFileDialog::getSaveFileName(this, QString(), projectDir, tr("Scan Tailor Projects") + " (*.ScanTailor)"));
+      QFileDialog::getSaveFileName(this, QString(), projectDir, tr("Scan Tailor Projects") + " (*.ScanTailor)",
+#if defined(Q_OS_IOS)
+          nullptr, QFileDialog::DontUseNativeDialog
+#else
+          nullptr
+#endif
+      ));
   if (projectFile.isEmpty()) {
     return;
   }
@@ -1470,9 +1477,17 @@ void MainWindow::openProject() {
     return;
   }
 
+#if defined(Q_OS_IOS)
+  const QString projectDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+#else
   const QString projectDir(QSettings().value("project/lastDir").toString());
+#endif
   const QString projectFile(QFileDialog::getOpenFileName(this, tr("Open Project"), projectDir,
-                                                         tr("Scan Tailor Projects") + " (*.ScanTailor)"));
+                                                         tr("Scan Tailor Projects") + " (*.ScanTailor)"
+#if defined(Q_OS_IOS)
+                                                         , nullptr, QFileDialog::DontUseNativeDialog
+#endif
+  ));
   if (projectFile.isEmpty()) {
     // Cancelled by user.
     return;
